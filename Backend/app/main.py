@@ -19,8 +19,9 @@ def evaluate(data: TranslationRequest):
     # source_tokens = tokenize(data.source)
     # target_tokens = tokenize(data.hypothesis)
 
-    normalized_source = normalize_text(data.source)
-    normalized_target = normalize_text(data.hypothesis)
+    normalized_source = normalize_text(data.source, source_language)
+
+    normalized_target = normalize_text(data.hypothesis, target_language)
 
     return {
         "source_language": source_language,
