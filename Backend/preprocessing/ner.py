@@ -1,75 +1,101 @@
-from models.nlp_models import nlp_en, nlp_hi
+from models.nlp_models import ner_model, nlp_hi
 
 
-def extract_english_entities(sentences: list[str]) -> list[list[dict]]:
+# Labels for English GLiNER
+LABELS = [
+    "PERSON",
+    "ORGANIZATION",
+    "LOCATION",
+    "DATE",
+    "TIME",
+    "PRODUCT",
+    "EVENT",
+    "DISEASE"
+]
+
+
+def extract_entities(
+    text: str,
+    language: str
+) -> list[dict]:
     """
-    Extract named entities from English sentences.
+    Extract named entities.
+
+    English -> GLiNER
+    Hindi -> Stanza
     """
 
-    if not sentences:
+    if not text.strip():
         return []
 
     entities = []
+    seen = set()
 
-    for sentence in sentences:
-
-        doc = nlp_en(sentence)
-
-        sentence_entities = []
-
-        for entity in doc.ents:
-
-            sentence_entities.append(
-                {
-                    "entity": entity.text,
-                    "label": entity.label_
-                }
-            )
-
-        entities.append(sentence_entities)
-
-    return entities
-
-
-def extract_hindi_entities(sentences: list[str]) -> list[list[dict]]:
-    """
-    Extract named entities from Hindi sentences.
-    """
-
-    if not sentences:
-        return []
-
-    entities = []
-
-    for sentence in sentences:
-
-        doc = nlp_hi(sentence)
-
-        sentence_entities = []
-
-        for entity in doc.entities:
-
-            sentence_entities.append(
-                {
-                    "entity": entity.text,
-                    "label": entity.type
-                }
-            )
-
-        entities.append(sentence_entities)
-
-    return entities
-
-
-def extract_entities(sentences: list[str], language: str):
-    """
-    Extract named entities based on language.
-    """
+    # --------------------------
+    # English
+    # --------------------------
 
     if language == "en":
-        return extract_english_entities(sentences)
+
+        predictions = ner_model.predict_entities(
+            text,
+            LABELS
+        )
+
+        for prediction in predictions:
+
+            entity = prediction["text"].strip()
+            label = prediction["label"]
+
+            # Remove leading articles
+            for article in ("The ", "the ", "A ", "An "):
+
+                if entity.startswith(article):
+                    entity = entity[len(article):]
+
+            key = (entity, label)
+
+            if key in seen:
+                continue
+
+            seen.add(key)
+
+            entities.append(
+                {
+                    "entity": entity,
+                    "label": label
+                }
+            )
+
+    # --------------------------
+    # Hindi
+    # --------------------------
 
     elif language == "hi":
-        return extract_hindi_entities(sentences)
 
-    return []
+        doc = nlp_hi(text)
+
+        for sentence in doc.sentences:
+
+            for ent in sentence.ents:
+
+                entity = ent.text.strip()
+                label = ent.type
+
+                key = (entity, label)
+
+                if key in seen:
+                    continue
+
+                seen.add(key)
+
+                entities.append(
+                    {
+                        "entity": entity,
+                        "label": label
+                    }
+                )
+
+    return entities
+
+

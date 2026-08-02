@@ -5,6 +5,7 @@ from preprocessing.tokenizer import tokenize_text
 from preprocessing.pos_tagger import tag_text
 from preprocessing.ner import extract_entities
 from preprocessing.terminology_extractor import extract_terminology
+from preprocessing.dependency_parser import parse_text
 
 def preprocess(source: str, hypothesis: str):
     source_language = detect_language(source)
@@ -47,15 +48,27 @@ def preprocess(source: str, hypothesis: str):
         target_sentences,
         target_language
     )
-    source_entities = extract_entities(
-    source_sentences,
-    source_language
-    )
+    source_entities = []
 
-    target_entities = extract_entities(
-        target_sentences,
-        target_language
-    )
+    for sentence in source_sentences:
+
+        source_entities.append(
+            extract_entities(
+                sentence,
+                source_language
+            )
+        )
+
+    target_entities = []
+
+    for sentence in target_sentences:
+
+        target_entities.append(
+            extract_entities(
+                sentence,
+                target_language
+            )
+        )
     source_terminology = extract_terminology(
     normalized_source,
     source_language
@@ -65,6 +78,15 @@ def preprocess(source: str, hypothesis: str):
         normalized_target,
         target_language
        
+    )
+    source_dependency = parse_text(
+    source_sentences,
+    source_language
+    )
+
+    target_dependency = parse_text(
+        target_sentences,
+        target_language
     )
     return {
     "source_language": source_language,
@@ -81,4 +103,6 @@ def preprocess(source: str, hypothesis: str):
     "target_entities": target_entities,
     "source_terminology": source_terminology,
     "target_terminology": target_terminology,
+    "source_dependency": source_dependency,
+    "target_dependency": target_dependency,
     }

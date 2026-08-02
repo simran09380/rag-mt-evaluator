@@ -1,10 +1,4 @@
-import spacy
-import stanza
-
-# Load models only once
-nlp_en = spacy.load("en_core_web_sm")
-nlp_hi = stanza.Pipeline("hi")
-
+from models.nlp_models import nlp_en, nlp_hi
 print("File Loaded")
 
 
