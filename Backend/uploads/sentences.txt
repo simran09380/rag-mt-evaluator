@@ -1,0 +1,11 @@
+id,source,hypothesis,reference,source_lang,target_lang,domain
+1,Hello world.,नमस्ते दुनिया।,नमस्ते दुनिया।,en,hi,general
+2,How are you?,आप कैसे हैं?,आप कैसे हैं?,en,hi,general
+3,The meeting starts at 10 AM.,बैठक सुबह 10 बजे शुरू होती है।,बैठक सुबह 10 बजे शुरू होती है।,en,hi,business
+4,Please submit your assignment before Friday.,कृपया शुक्रवार से पहले अपना असाइनमेंट जमा करें।,कृपया शुक्रवार से पहले अपना असाइनमेंट जमा करें।,en,hi,education
+5,Artificial Intelligence is transforming healthcare.,कृत्रिम बुद्धिमत्ता स्वास्थ्य सेवा को बदल रही है।,कृत्रिम बुद्धिमत्ता स्वास्थ्य सेवा को बदल रही है।,en,hi,medical
+6,The patient has a high fever.,रोगी को तेज बुखार है।,रोगी को तेज बुखार है।,en,hi,medical
+7,This medicine should be taken after meals.,यह दवा भोजन के बाद लेनी चाहिए।,यह दवा भोजन के बाद लेनी चाहिए।,en,hi,medical
+8,The weather is pleasant today.,आज मौसम सुहावना है।,आज मौसम सुहावना है।,en,hi,general
+9,Machine learning improves prediction accuracy.,मशीन लर्निंग भविष्यवाणी की सटीकता बढ़ाती है।,मशीन लर्निंग भविष्यवाणी की सटीकता बढ़ाती है।,en,hi,technology
+10,Thank you for your support.,आपके सहयोग के लिए धन्यवाद।,आपके सहयोग के लिए धन्यवाद।,en,hi,general
