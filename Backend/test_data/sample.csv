@@ -1,3 +1,4 @@
 id,source,hypothesis,reference,source_lang,target_lang,domain
-1,Hello,नमस्ते   ,नमस्ते,en,hi,general
-  ,Good     Morning,सुप्रभात,सुप्रभात,en,hi,general
+1,"Dr. Sharma prescribed antibiotics to treat the patient's bacterial infection.","डॉ. शर्मा ने मरीज के बैक्टीरियल संक्रमण के इलाज के लिए एंटीबायोटिक्स लिखीं।","डॉ. शर्मा ने मरीज के जीवाणु संक्रमण के इलाज के लिए एंटीबायोटिक्स निर्धारित कीं।",en,hi,healthcare
+2,"The World Health Organization recommends vaccination against COVID-19.","विश्व स्वास्थ्य संगठन COVID-19 के खिलाफ टीकाकरण की सिफारिश करता है।","विश्व स्वास्थ्य संगठन COVID-19 के विरुद्ध टीकाकरण की अनुशंसा करता है।",en,hi,healthcare
+3,"The patient should take the medicine twice a day after meals.","रोगी को भोजन के बाद दिन में दो बार दवा लेनी चाहिए।","रोगी को भोजन के बाद दिन में दो बार औषधि लेनी चाहिए।",en,hi,healthcare

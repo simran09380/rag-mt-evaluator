@@ -1,4 +1,4 @@
-from app.terminology.extractor import extract_english_terminology
+from app.query_generation.utils import extract_english_terminology
 
 
 def generate_terminology_query(
@@ -16,19 +16,9 @@ def generate_terminology_query(
 
     terminology = extract_english_terminology(text)
 
-    terms = []
-
-    for item in terminology:
-        term = item.get("term")
-
-        if term:
-            terms.append(term.strip())
-
-    terms = list(dict.fromkeys(terms))
-
-    if not terms:
+    if not terminology:
         return ""
 
     return " ".join(
-        terms + [domain, source_lang, target_lang]
+        terminology + [domain, source_lang, target_lang]
     )
