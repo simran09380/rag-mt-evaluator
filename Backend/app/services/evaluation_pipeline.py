@@ -138,9 +138,13 @@ async def evaluate(
                 entity_records=entity_records
             )
 
-            embedded_chunks = embed_chunks(chunk_result)
+            embedded_chunks = embed_chunks(
+                chunk_result["valid_chunks"]
+            )
 
-            dataset["chunks"] = embedded_chunks
+            chunk_result["valid_chunks"] = embedded_chunks
+
+            dataset["chunks"] = chunk_result
 
             return dataset
 
@@ -171,9 +175,13 @@ async def evaluate(
                 paragraph_records=paragraph_records
             )
 
-            embedded_chunks = embed_chunks(chunk_result)
+            embedded_chunks = embed_chunks(
+                chunk_result["valid_chunks"]
+            )
 
-            dataset["chunks"] = embedded_chunks
+            chunk_result["valid_chunks"] = embedded_chunks
+
+            dataset["chunks"] = chunk_result
 
             return dataset
 
@@ -198,10 +206,13 @@ async def evaluate(
                 section_records=section_records
             )
 
-            # EMBEDDINGS
-            embedded_chunks = embed_chunks(chunk_result)
+            embedded_chunks = embed_chunks(
+                chunk_result["valid_chunks"]
+            )
 
-            dataset["chunks"] = embedded_chunks
+            chunk_result["valid_chunks"] = embedded_chunks
+
+            dataset["chunks"] = chunk_result
 
             return dataset
 
@@ -228,13 +239,18 @@ async def evaluate(
         sentence_records=[sentence_record]
     )
 
-    # EMBEDDINGS
-    embedded_chunks = embed_chunks(chunk_result)
+    embedded_chunks = embed_chunks(
+        chunk_result["valid_chunks"]
+    )
+
+    chunk_result["valid_chunks"] = embedded_chunks
+
+    
 
     return {
         "source": source,
         "hypothesis": hypothesis,
         "reference": reference,
         "preprocessing": preprocessing_result,
-        "chunks": embedded_chunks
+        "chunks": chunk_result
     }
