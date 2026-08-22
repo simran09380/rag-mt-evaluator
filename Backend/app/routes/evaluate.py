@@ -4,6 +4,7 @@ from fastapi import APIRouter, UploadFile, File, Form
 
 from app.services.evaluation_pipeline import evaluate
 
+
 router = APIRouter(
     prefix="/evaluate",
     tags=["Evaluation"]

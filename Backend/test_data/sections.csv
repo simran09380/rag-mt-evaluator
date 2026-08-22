@@ -1,0 +1,4 @@
+section_id,section_title,text,language,domain,source_type,authority,document_id
+sec_001,Eligibility,"Only registered users are eligible for the program. Applicants must submit valid identification.","en","legal","policy_document","verified","policy_001"
+sec_002,Application Process,"Applications must be submitted before the deadline. All required documents must be attached.","en","legal","policy_document","verified","policy_001"
+sec_003,Data Protection,"User information must be stored securely and must not be shared without authorization.","en","legal","policy_document","verified","policy_001"

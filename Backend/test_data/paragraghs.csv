@@ -1,0 +1,4 @@
+paragraph_id,text,language,domain,source_type,authority,document_id
+p_001,"Antibiotics are medicines used to treat bacterial infections. They do not work against viral infections.","en","healthcare","medical_guideline","verified","med_001"
+p_002,"Patients should take antibiotics only when prescribed by a qualified healthcare professional.","en","healthcare","medical_guideline","verified","med_001"
+p_003,"The prescribed course should be completed unless the doctor advises otherwise.","en","healthcare","medical_guideline","verified","med_001"
