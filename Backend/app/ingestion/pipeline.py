@@ -50,6 +50,12 @@ def ingest_dataset(file):
         records=final_data
     )
 
+    # Attach document ID to every record
+    document_id = metadata["document_id"]
+
+    for record in final_data:
+        record["document_id"] = document_id
+
     return {
         "message": "File uploaded successfully.",
         "metadata": metadata,

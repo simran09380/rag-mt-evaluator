@@ -18,6 +18,7 @@ def create_sentence_chunks(records: list[dict]) -> list[dict]:
             "source_type": "translation_memory",
             "authority": "unknown",
             "sentence_id": sentence_id,
+            "document_id": record.get("document_id"),
         }
 
         target_chunk = {
@@ -29,12 +30,14 @@ def create_sentence_chunks(records: list[dict]) -> list[dict]:
             "source_type": "translation_memory",
             "authority": "unknown",
             "sentence_id": sentence_id,
+            "document_id": record.get("document_id"),
         }
 
         chunks.append(source_chunk)
         chunks.append(target_chunk)
 
     return chunks
+
 
 def create_parallel_chunks(records: list[dict]) -> list[dict]:
     """
@@ -58,6 +61,7 @@ def create_parallel_chunks(records: list[dict]) -> list[dict]:
             "source_type": "translation_memory",
             "authority": "unknown",
             "sentence_id": sentence_id,
+            "document_id": record.get("document_id"),
         }
 
         chunks.append(chunk)

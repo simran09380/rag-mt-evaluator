@@ -3,7 +3,12 @@ from pipeline.preprocessing_pipeline import preprocess
 from app.chunking.pipeline import build_chunks
 from app.ingestion.validator import detect_dataset_type
 from app.embeddings.embeddings import embed_chunks
+from app.indexing.index_manager import IndexManager
+from app.indexing.index_builder import build_indexes
 
+import uuid
+
+index_manager = IndexManager()
 
 async def evaluate(
     file,
@@ -72,7 +77,8 @@ async def evaluate(
                         "language": source_language,
                         "domain": record["domain"],
                         "source_type": "extracted_terminology",
-                        "authority": "unknown"
+                        "authority": "unknown",
+                        "document_id": record.get("document_id"),
                     })
 
                 for term in preprocessing_result[
@@ -84,7 +90,8 @@ async def evaluate(
                         "language": target_language,
                         "domain": record["domain"],
                         "source_type": "extracted_terminology",
-                        "authority": "unknown"
+                        "authority": "unknown",
+                        "document_id": record.get("document_id"),
                     })
 
                 # -------------------------
@@ -104,7 +111,8 @@ async def evaluate(
                             "source_type": (
                                 "named_entity_extraction"
                             ),
-                            "authority": "unknown"
+                            "authority": "unknown",
+                            "document_id": record.get("document_id"),
                         })
 
                 for sentence_entities in preprocessing_result[
@@ -121,7 +129,8 @@ async def evaluate(
                             "source_type": (
                                 "named_entity_extraction"
                             ),
-                            "authority": "unknown"
+                            "authority": "unknown",
+                            "document_id": record.get("document_id"),
                         })
 
             # -------------------------
@@ -143,6 +152,11 @@ async def evaluate(
             )
 
             chunk_result["valid_chunks"] = embedded_chunks
+
+            build_indexes(
+                embedded_chunks,
+                index_manager
+            )
 
             dataset["chunks"] = chunk_result
 
@@ -181,6 +195,11 @@ async def evaluate(
 
             chunk_result["valid_chunks"] = embedded_chunks
 
+            build_indexes(
+                embedded_chunks,
+                index_manager
+            )
+
             dataset["chunks"] = chunk_result
 
             return dataset
@@ -212,6 +231,11 @@ async def evaluate(
 
             chunk_result["valid_chunks"] = embedded_chunks
 
+            build_indexes(
+                embedded_chunks,
+                index_manager
+            )
+
             dataset["chunks"] = chunk_result
 
             return dataset
@@ -233,6 +257,7 @@ async def evaluate(
         "source_lang": source_lang,
         "target_lang": target_lang,
         "domain": domain,
+        "document_id": str(uuid.uuid4()),
     }
 
     chunk_result = build_chunks(
@@ -245,6 +270,11 @@ async def evaluate(
 
     chunk_result["valid_chunks"] = embedded_chunks
 
+    build_indexes(
+            embedded_chunks,
+            index_manager
+        )
+
     
 
     return {
@@ -254,3 +284,15 @@ async def evaluate(
         "preprocessing": preprocessing_result,
         "chunks": chunk_result
     }
+
+def build_indexes(
+    embedded_chunks: list[dict],
+    index_manager
+):
+    """
+    Build and update all indexes using IndexManager.
+    """
+
+    return index_manager.build_all(
+        embedded_chunks
+    )

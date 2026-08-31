@@ -1,5 +1,6 @@
 from datetime import datetime
 from pathlib import Path
+import uuid
 
 
 def generate_metadata(
@@ -12,6 +13,7 @@ def generate_metadata(
     """
 
     metadata = {
+        "document_id": str(uuid.uuid4()),
         "filename": file_info["filename"],
         "file_type": Path(file_info["filename"]).suffix,
         "content_type": file_info["content_type"],
