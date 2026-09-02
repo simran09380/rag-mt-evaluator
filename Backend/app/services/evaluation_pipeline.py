@@ -5,6 +5,8 @@ from app.ingestion.validator import detect_dataset_type
 from app.embeddings.embeddings import embed_chunks
 from app.indexing.index_manager import IndexManager
 from app.indexing.index_builder import build_indexes
+from app.query_generation.pipeline import generate_queries
+from app.retrieval.query_retrieval_service import QueryRetrievalService
 
 import uuid
 
@@ -158,7 +160,46 @@ async def evaluate(
                 index_manager
             )
 
+            # ==================================================
+            # MODULE 3 + MODULE 5
+            # ==================================================
+
+            query_results = []
+
+            for record in dataset["data"]:
+
+                record_queries = generate_queries(
+                    source_text=record["source"],
+                    mt_output=record["hypothesis"],
+                    source_lang=record.get("source_lang"),
+                    target_lang=record.get("target_lang"),
+                    domain=record.get("domain")
+                )
+
+                query_retrieval_service = QueryRetrievalService(
+                    chunks=embedded_chunks,
+                    index_manager=index_manager
+                )
+
+                record_retrieval = (
+                    query_retrieval_service.retrieve_generated_queries(
+                        generated_queries=record_queries,
+                        query_metadata={
+                            "language": record.get("source_lang"),
+                            "domain": record.get("domain")
+                        },
+                        index_type="source",
+                        top_k=5
+                    )
+                )
+
+                query_results.append({
+                    "record_id": record.get("id"),
+                    "queries": record_queries,
+                    "retrieval": record_retrieval
+                })
             dataset["chunks"] = chunk_result
+            dataset["query_retrieval"] = query_results
 
             return dataset
 
@@ -200,7 +241,9 @@ async def evaluate(
                 index_manager
             )
 
+            
             dataset["chunks"] = chunk_result
+            
 
             return dataset
 
@@ -236,7 +279,10 @@ async def evaluate(
                 index_manager
             )
 
+            
+
             dataset["chunks"] = chunk_result
+            
 
             return dataset
 
@@ -275,6 +321,39 @@ async def evaluate(
             index_manager
         )
 
+    # ==================================================
+    # MODULE 3: QUERY GENERATION
+    # ==================================================
+
+    generated_queries = generate_queries(
+        source_text=source,
+        mt_output=hypothesis,
+        source_lang=source_lang,
+        target_lang=target_lang,
+        domain=domain
+    )
+
+    # ==================================================
+    # MODULE 5: HYBRID RETRIEVAL
+    # ==================================================
+
+    query_retrieval_service = QueryRetrievalService(
+        chunks=embedded_chunks,
+        index_manager=index_manager
+    )
+
+    retrieval_results = (
+        query_retrieval_service.retrieve_generated_queries(
+            generated_queries=generated_queries,
+            query_metadata={
+                "language": source_lang,
+                "domain": domain
+            },
+            index_type="source",
+            top_k=5
+        )
+    )
+
     
 
     return {
@@ -282,7 +361,9 @@ async def evaluate(
         "hypothesis": hypothesis,
         "reference": reference,
         "preprocessing": preprocessing_result,
-        "chunks": chunk_result
+        "chunks": chunk_result,
+        "queries": generated_queries,
+        "retrieval": retrieval_results
     }
 
 def build_indexes(
