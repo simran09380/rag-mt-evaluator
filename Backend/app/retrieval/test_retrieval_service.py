@@ -1,133 +1,310 @@
-from app.retrieval.retrieval_service import RetrievalService
+from app.retrieval.query_retrieval_service import (
+    QueryRetrievalService
+)
 from app.indexing.index_manager import IndexManager
 
 
-# -----------------------------------------
+# =========================================
 # Load existing FAISS indexes
-# -----------------------------------------
+# =========================================
 
 index_manager = IndexManager(
     index_dir="indexes"
 )
 
 
-# -----------------------------------------
-# Temporary test chunks
-# -----------------------------------------
-# IMPORTANT:
-# These should eventually come from
-# Module 4 valid_chunks.
+# =========================================
+# Test chunks
+# =========================================
 
 chunks = [
     {
         "chunk_id": "src_1",
         "chunk_type": "sentence",
+        "source_text": (
+            "Dr. Sharma prescribed antibiotics "
+            "to treat the patient's bacterial infection."
+        ),
+        "target_text": (
+            "डॉ. शर्मा ने मरीज के बैक्टीरियल संक्रमण "
+            "के इलाज के लिए एंटीबायोटिक्स लिखीं।"
+        ),
         "text": (
             "Dr. Sharma prescribed antibiotics "
             "to treat the patient's bacterial infection."
         ),
-        "language": "en",
+        "source_lang": "en",
+        "target_lang": "hi",
         "domain": "healthcare",
-        "authority": "unknown"
+        "authority": "unknown",
+        "terms": [
+            "antibiotics",
+            "bacterial infection"
+        ],
+        "entities": [
+            "Dr. Sharma"
+        ],
+        "verification_status": "verified",
+        "source_type": "translation_memory"
     },
+
     {
         "chunk_id": "src_2",
         "chunk_type": "sentence",
+        "source_text": (
+            "The patient should take the medicine "
+            "twice a day after meals."
+        ),
+        "target_text": (
+            "रोगी को भोजन के बाद दिन में दो बार "
+            "औषधि लेनी चाहिए।"
+        ),
         "text": (
             "The patient should take the medicine "
             "twice a day after meals."
         ),
-        "language": "en",
+        "source_lang": "en",
+        "target_lang": "hi",
         "domain": "healthcare",
-        "authority": "unknown"
+        "authority": "official",
+        "terms": [
+            "twice daily",
+            "medicine"
+        ],
+        "entities": [],
+        "verification_status": "verified",
+        "source_type": "translation_memory"
     }
 ]
 
 
-# -----------------------------------------
-# Create Retrieval Service
-# -----------------------------------------
+# =========================================
+# Create Query Retrieval Service
+# =========================================
 
-retrieval_service = RetrievalService(
+service = QueryRetrievalService(
     chunks=chunks,
     index_manager=index_manager
 )
 
 
-# -----------------------------------------
-# Query
-# -----------------------------------------
+# =========================================
+# Source sentence + MT hypothesis
+# =========================================
 
-query = "antibiotics for bacterial infection"
+source_text = (
+    "The patient should take the medicine "
+    "twice a day after meals."
+)
 
-
-query_metadata = {
-    "language": "en",
-    "domain": "healthcare",
-    "chunk_type": "sentence"
-}
-
-
-# -----------------------------------------
-# Hybrid Retrieval
-# -----------------------------------------
-
-results = retrieval_service.retrieve(
-    query=query,
-    query_metadata=query_metadata,
-    index_type="source",
-    top_k=1
+mt_output = (
+    "रोगी को भोजन के बाद दिन में दो बार "
+    "औषधि लेनी चाहिए।"
 )
 
 
-# -----------------------------------------
-# Display results
-# -----------------------------------------
+# =========================================
+# Module 3 generated queries
+# =========================================
 
-print("\nQuery:")
-print(query)
+generated_queries = {
+    "full_sentence": [
+        source_text
+    ],
 
-print("\nHybrid Retrieval Results:")
+    "keywords": [
+        "medicine twice day meals"
+    ],
 
-for result in results:
+    "terminology": [
+        "twice daily"
+    ],
 
-    print("\n------------------------")
+    "named_entities": [],
 
-    print("Chunk ID:", result["chunk_id"])
-    print("Chunk Type:", result["chunk_type"])
-    print("Text:", result["text"])
+    "semantic_embedding": [
+        source_text
+    ],
 
-    print(
-        "BM25:",
-        result["bm25_score"]
-    )
+    "cross_lingual": [
+        mt_output
+    ]
+}
 
-    print(
-        "Normalized BM25:",
-        result["normalized_bm25_score"]
-    )
 
-    print(
-        "Dense:",
-        result["dense_score"]
-    )
+# =========================================
+# Query metadata
+# =========================================
 
-    print(
-        "Normalized Dense:",
-        result["normalized_dense_score"]
-    )
+query_metadata = {
+    "source_lang": "en",
+    "target_lang": "hi",
+    "domain": "healthcare"
+}
 
-    print(
-        "Metadata:",
-        result["metadata_score"]
-    )
 
-    print(
-        "Authority:",
-        result["authority_score"]
-    )
+# =========================================
+# Module 3 → Module 5 → Module 6
+# =========================================
 
-    print(
-        "Hybrid:",
-        result["hybrid_score"]
-    )
+results = service.retrieve_generated_queries(
+    generated_queries=generated_queries,
+
+    source_text=source_text,
+    mt_output=mt_output,
+
+    source_lang="en",
+    target_lang="hi",
+
+    query_terms=[
+        "medicine",
+        "twice daily"
+    ],
+
+    query_entities=[],
+
+    query_metadata=query_metadata,
+
+    index_type="source",
+
+    # Module 6 final output
+    top_k=3,
+
+    # Module 5 candidate pool
+    retrieval_top_k=5
+)
+
+
+# =========================================
+# Display final results
+# =========================================
+
+print("\n")
+print("=" * 60)
+print("MODULE 3 → MODULE 5 → MODULE 6")
+print("=" * 60)
+
+print("\nSource:")
+print(source_text)
+
+print("\nMT Output:")
+print(mt_output)
+
+
+for query_type, query_results in results.items():
+
+    print("\n")
+    print("=" * 60)
+    print("QUERY TYPE:", query_type)
+    print("=" * 60)
+
+    if isinstance(query_results, list):
+
+        for item in query_results:
+
+            print("\nQuery:")
+            print(item["query"])
+
+            print("\nReranked Evidence:")
+
+            for rank, result in enumerate(
+                item["results"],
+                start=1
+            ):
+
+                print("\n------------------------")
+                print("Rank:", rank)
+                print("Chunk ID:", result["chunk_id"])
+                print(
+                    "Source:",
+                    result["source"]
+                )
+                print(
+                    "Target:",
+                    result["target"]
+                )
+                print(
+                    "Source Type:",
+                    result["source_type"]
+                )
+                print(
+                    "Source Similarity:",
+                    round(
+                        result["source_similarity"],
+                        4
+                    )
+                )
+                print(
+                    "Hypothesis Similarity:",
+                    round(
+                        result["hypothesis_similarity"],
+                        4
+                    )
+                )
+                print(
+                    "Language Pair:",
+                    round(
+                        result["language_pair_score"],
+                        4
+                    )
+                )
+                print(
+                    "Terminology:",
+                    round(
+                        result["terminology_score"],
+                        4
+                    )
+                )
+                print(
+                    "Entity:",
+                    round(
+                        result["entity_score"],
+                        4
+                    )
+                )
+                print(
+                    "Authority:",
+                    round(
+                        result["authority_score"],
+                        4
+                    )
+                )
+                print(
+                    "Verification:",
+                    round(
+                        result["verification_score"],
+                        4
+                    )
+                )
+                print(
+                    "FINAL RELEVANCE:",
+                    round(
+                        result["relevance"],
+                        4
+                    )
+                )
+
+    else:
+
+        print("\nQuery:")
+        print(query_results["query"])
+
+        print("\nReranked Evidence:")
+
+        for rank, result in enumerate(
+            query_results["results"],
+            start=1
+        ):
+
+            print("\n------------------------")
+            print("Rank:", rank)
+            print("Chunk ID:", result["chunk_id"])
+            print("Source:", result["source"])
+            print("Target:", result["target"])
+            print(
+                "FINAL RELEVANCE:",
+                round(
+                    result["relevance"],
+                    4
+                )
+            )

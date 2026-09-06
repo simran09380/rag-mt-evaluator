@@ -184,6 +184,8 @@ async def evaluate(
                 record_retrieval = (
                     query_retrieval_service.retrieve_generated_queries(
                         generated_queries=record_queries,
+                        source_text=record["source"],
+                        mt_output=record["hypothesis"],
                         query_metadata={
                             "language": record.get("source_lang"),
                             "domain": record.get("domain")
@@ -345,6 +347,8 @@ async def evaluate(
     retrieval_results = (
         query_retrieval_service.retrieve_generated_queries(
             generated_queries=generated_queries,
+            source_text=source,
+            mt_output=hypothesis,
             query_metadata={
                 "language": source_lang,
                 "domain": domain
