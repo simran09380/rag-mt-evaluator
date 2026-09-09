@@ -7,6 +7,7 @@ from app.indexing.index_manager import IndexManager
 from app.indexing.index_builder import build_indexes
 from app.query_generation.pipeline import generate_queries
 from app.retrieval.query_retrieval_service import QueryRetrievalService
+from app.metrics.metric_engine import calculate_all_metrics
 
 import uuid
 
@@ -54,8 +55,20 @@ async def evaluate(
                     record["source"],
                     record["hypothesis"]
                 )
-
                 record["preprocessing"] = preprocessing_result
+
+                # -------------------------
+                # MODULE 7: METRICS
+                # -------------------------
+                metric_results = calculate_all_metrics(
+                    source=record["source"],
+                    hypothesis=record["hypothesis"],
+                    reference=record.get("reference")
+                )
+
+                record["metrics"] = metric_results
+
+                
 
                 processed_records.append(record)
 
@@ -358,7 +371,15 @@ async def evaluate(
         )
     )
 
-    
+    # ==================================================
+    # MODULE 7: METRICS
+    # ==================================================
+
+    metric_results = calculate_all_metrics(
+        source=source,
+        hypothesis=hypothesis,
+        reference=reference
+    )
 
     return {
         "source": source,
@@ -367,7 +388,8 @@ async def evaluate(
         "preprocessing": preprocessing_result,
         "chunks": chunk_result,
         "queries": generated_queries,
-        "retrieval": retrieval_results
+        "retrieval": retrieval_results,
+        "metrics": metric_results
     }
 
 def build_indexes(
