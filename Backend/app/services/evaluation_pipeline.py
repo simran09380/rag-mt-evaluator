@@ -1,3 +1,4 @@
+from app.metrics.metric_engine import calculate_all_metrics
 from app.ingestion.pipeline import ingest_dataset
 from pipeline.preprocessing_pipeline import preprocess
 from app.chunking.pipeline import build_chunks
@@ -7,11 +8,79 @@ from app.indexing.index_manager import IndexManager
 from app.indexing.index_builder import build_indexes
 from app.query_generation.pipeline import generate_queries
 from app.retrieval.query_retrieval_service import QueryRetrievalService
-from app.metrics.metric_engine import calculate_all_metrics
+from app.services.llm_evaluator import LLMEvaluator
 
 import uuid
 
 index_manager = IndexManager()
+
+def build_llm_evidence(retrieval_results, max_items=15):
+
+    evidence = []
+    seen = set()
+
+    if not isinstance(retrieval_results, dict):
+        return evidence
+
+    for query_type, query_data in retrieval_results.items():
+
+        if not isinstance(query_data, dict):
+            continue
+
+        results = query_data.get("results", [])
+
+        if not isinstance(results, list):
+            continue
+
+        for result in results:
+
+            if not isinstance(result, dict):
+                continue
+
+            source_text = result.get("source")
+
+            translation_text = (
+                result.get("target_text")
+                or result.get("target")
+            )
+
+            if not translation_text:
+                translation_text = None
+
+            evidence_type = (
+                result.get("chunk_type")
+                or query_type
+                or "retrieved"
+            )
+
+            relevance = result.get("relevance")
+
+            chunk_id = result.get("chunk_id")
+
+            dedupe_key = (
+                chunk_id,
+                source_text,
+                translation_text,
+                evidence_type
+            )
+
+            if dedupe_key in seen:
+                continue
+
+            seen.add(dedupe_key)
+
+            evidence.append({
+                "id": f"E{len(evidence) + 1}",
+                "source": source_text,
+                "translation": translation_text,
+                "type": evidence_type,
+                "relevance": relevance
+            })
+
+            if len(evidence) >= max_items:
+                return evidence
+
+    return evidence
 
 async def evaluate(
     file,
@@ -23,6 +92,7 @@ async def evaluate(
     domain,
 ):
 
+   
     # ==================================================
     # FILE INPUT
     # ==================================================
@@ -179,6 +249,8 @@ async def evaluate(
 
             query_results = []
 
+            llm_evaluator = LLMEvaluator()
+
             for record in dataset["data"]:
 
                 record_queries = generate_queries(
@@ -213,6 +285,27 @@ async def evaluate(
                     "queries": record_queries,
                     "retrieval": record_retrieval
                 })
+                # -------------------------
+                # MODULE 8: LLM EVALUATION
+                # -------------------------
+
+                evidence_items = build_llm_evidence(
+                    record_retrieval
+                )
+
+                llm_evaluation = llm_evaluator.evaluate(
+                    source=record["source"],
+                    translation=record["hypothesis"],
+                    source_lang=record.get("source_lang"),
+                    target_lang=record.get("target_lang"),
+                    domain=record.get("domain"),
+                    reference=record.get("reference"),
+                    evidence=evidence_items,
+                    metrics=record.get("metrics"),
+                    evaluation_instructions=None
+                )
+
+                record["llm_evaluation"] = llm_evaluation
             dataset["chunks"] = chunk_result
             dataset["query_retrieval"] = query_results
 
@@ -381,6 +474,33 @@ async def evaluate(
         reference=reference
     )
 
+    
+    
+    # ==================================================
+    # MODULE 8: EVIDENCE-GROUNDED LLM EVALUATION
+    # ==================================================
+    # Convert retrieval results into clean evidence
+    
+    evidence_items = build_llm_evidence(
+        retrieval_results
+    )
+
+
+    llm_evaluator = LLMEvaluator()
+
+    llm_evaluation = llm_evaluator.evaluate(
+        source=source,
+        translation=hypothesis,
+        source_lang=source_lang,
+        target_lang=target_lang,
+        domain=domain,
+        reference=reference,
+        evidence=evidence_items,
+        metrics=metric_results,
+        evaluation_instructions=None
+    )
+
+
     return {
         "source": source,
         "hypothesis": hypothesis,
@@ -389,17 +509,8 @@ async def evaluate(
         "chunks": chunk_result,
         "queries": generated_queries,
         "retrieval": retrieval_results,
-        "metrics": metric_results
+        "metrics": metric_results,
+        "llm_evaluation": llm_evaluation
     }
 
-def build_indexes(
-    embedded_chunks: list[dict],
-    index_manager
-):
-    """
-    Build and update all indexes using IndexManager.
-    """
 
-    return index_manager.build_all(
-        embedded_chunks
-    )
