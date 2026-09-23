@@ -9,6 +9,7 @@ from app.indexing.index_builder import build_indexes
 from app.query_generation.pipeline import generate_queries
 from app.retrieval.query_retrieval_service import QueryRetrievalService
 from app.services.llm_evaluator import LLMEvaluator
+from app.services.mqm_service import MQMService
 
 import uuid
 
@@ -250,6 +251,7 @@ async def evaluate(
             query_results = []
 
             llm_evaluator = LLMEvaluator()
+            mqm_service = MQMService()
 
             for record in dataset["data"]:
 
@@ -305,7 +307,23 @@ async def evaluate(
                     evaluation_instructions=None
                 )
 
+                mqm_service = MQMService()
+
+                mqm_evaluation = mqm_service.classify(
+                    source=record["source"],
+                    translation=record["hypothesis"],
+                    source_lang=record.get("source_lang"),
+                    target_lang=record.get("target_lang"),
+                    domain=record.get("domain"),
+                    reference=record.get("reference"),
+                    evidence=evidence_items,
+                    llm_evaluation=llm_evaluation,
+                )
+
                 record["llm_evaluation"] = llm_evaluation
+                record["mqm_evaluation"] = mqm_evaluation
+
+                
             dataset["chunks"] = chunk_result
             dataset["query_retrieval"] = query_results
 
@@ -500,6 +518,18 @@ async def evaluate(
         evaluation_instructions=None
     )
 
+    mqm_service = MQMService()
+
+    mqm_evaluation = mqm_service.classify(
+        source=source,
+        translation=hypothesis,
+        source_lang=source_lang,
+        target_lang=target_lang,
+        domain=domain,
+        reference=reference,
+        evidence=evidence_items,
+        llm_evaluation=llm_evaluation,
+    )
 
     return {
         "source": source,
@@ -510,7 +540,8 @@ async def evaluate(
         "queries": generated_queries,
         "retrieval": retrieval_results,
         "metrics": metric_results,
-        "llm_evaluation": llm_evaluation
+        "llm_evaluation": llm_evaluation,
+        "mqm_evaluation": mqm_evaluation
     }
 
 
