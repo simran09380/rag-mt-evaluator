@@ -10,6 +10,7 @@ from app.query_generation.pipeline import generate_queries
 from app.retrieval.query_retrieval_service import QueryRetrievalService
 from app.services.llm_evaluator import LLMEvaluator
 from app.services.mqm_service import MQMService
+from app.fusion.score_fusion import ScoreFusion
 
 import uuid
 
@@ -72,10 +73,20 @@ def build_llm_evidence(retrieval_results, max_items=15):
 
             evidence.append({
                 "id": f"E{len(evidence) + 1}",
+                "chunk_id": chunk_id,
                 "source": source_text,
                 "translation": translation_text,
                 "type": evidence_type,
-                "relevance": relevance
+                 # Module 6 reranking information
+                "relevance": relevance,
+                "semantic_score": result.get("semantic_score"),
+                "source_similarity": result.get("source_similarity"),
+                "hypothesis_similarity": result.get("hypothesis_similarity"),
+                "language_pair_score": result.get("language_pair_score"),
+                "terminology_score": result.get("terminology_score"),
+                "entity_score": result.get("entity_score"),
+                "authority_score": result.get("authority_score"),
+                "verification_score": result.get("verification_score"),
             })
 
             if len(evidence) >= max_items:
@@ -252,6 +263,7 @@ async def evaluate(
 
             llm_evaluator = LLMEvaluator()
             mqm_service = MQMService()
+            score_fusion = ScoreFusion()
 
             for record in dataset["data"]:
 
@@ -320,8 +332,22 @@ async def evaluate(
                     llm_evaluation=llm_evaluation,
                 )
 
+                # ==================================================
+                # MODULE 10: SCORE FUSION
+                # ==================================================
+
+                score_fusion = ScoreFusion()
+
+                final_evaluation = score_fusion.calculate_score(
+                    metrics=metric_results,
+                    llm_evaluation=llm_evaluation,
+                    mqm_evaluation=mqm_evaluation,
+                    evidence=evidence_items,
+                )
+
                 record["llm_evaluation"] = llm_evaluation
                 record["mqm_evaluation"] = mqm_evaluation
+                record["final_evaluation"] = final_evaluation
 
                 
             dataset["chunks"] = chunk_result
@@ -531,6 +557,19 @@ async def evaluate(
         llm_evaluation=llm_evaluation,
     )
 
+    # ==================================================
+    # MODULE 10: SCORE FUSION
+    # ==================================================
+
+    score_fusion = ScoreFusion()
+
+    final_evaluation = score_fusion.calculate_score(
+        metrics=metric_results,
+        llm_evaluation=llm_evaluation,
+        mqm_evaluation=mqm_evaluation,
+        evidence=evidence_items,
+    )
+
     return {
         "source": source,
         "hypothesis": hypothesis,
@@ -541,7 +580,8 @@ async def evaluate(
         "retrieval": retrieval_results,
         "metrics": metric_results,
         "llm_evaluation": llm_evaluation,
-        "mqm_evaluation": mqm_evaluation
+        "mqm_evaluation": mqm_evaluation,
+        "final_evaluation": final_evaluation
     }
 
 
