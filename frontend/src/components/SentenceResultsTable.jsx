@@ -5,24 +5,49 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
-function SentenceResultsTable({ results, onSelectSentence }) {
+function getQualityLabel(score) {
+  if (typeof score !== "number") {
+    return "Not Available";
+  }
+
+  if (score >= 90) return "Excellent";
+  if (score >= 75) return "Good";
+  if (score >= 60) return "Needs Review";
+
+  return "Poor";
+}
+
+function SentenceResultsTable({
+  results = [],
+  onSelectSentence,
+}) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
 
   const filteredResults = useMemo(() => {
     return results.filter((item) => {
-      const searchText = search.toLowerCase();
+      const searchText =
+        search.toLowerCase();
 
       const matchesSearch =
-        item.source.toLowerCase().includes(searchText) ||
-        item.translation.toLowerCase().includes(searchText) ||
-        String(item.sentence_id).includes(searchText);
+        String(item?.sentence_id)
+          .toLowerCase()
+          .includes(searchText) ||
+        item?.source
+          ?.toLowerCase()
+          .includes(searchText) ||
+        item?.translation
+          ?.toLowerCase()
+          .includes(searchText);
 
       const matchesFilter =
         filter === "All" ||
-        item.quality_label === filter;
+        item?.quality_label === filter;
 
-      return matchesSearch && matchesFilter;
+      return (
+        matchesSearch &&
+        matchesFilter
+      );
     });
   }, [results, search, filter]);
 
@@ -33,7 +58,7 @@ function SentenceResultsTable({ results, onSelectSentence }) {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
         <div>
-          <h2 className="text-lg font-semibold">
+          <h2 className="text-lg font-semibold text-white">
             Sentence Results
           </h2>
 
@@ -45,7 +70,6 @@ function SentenceResultsTable({ results, onSelectSentence }) {
         {/* Search + Filter */}
         <div className="flex gap-2">
 
-          {/* Search */}
           <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2.5">
 
             <Search
@@ -55,7 +79,9 @@ function SentenceResultsTable({ results, onSelectSentence }) {
 
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
               placeholder="Search sentences..."
               className="
                 w-40
@@ -69,7 +95,6 @@ function SentenceResultsTable({ results, onSelectSentence }) {
 
           </div>
 
-          {/* Filter */}
           <div className="relative">
 
             <SlidersHorizontal
@@ -86,7 +111,9 @@ function SentenceResultsTable({ results, onSelectSentence }) {
 
             <select
               value={filter}
-              onChange={(e) => setFilter(e.target.value)}
+              onChange={(e) =>
+                setFilter(e.target.value)
+              }
               className="
                 appearance-none
                 rounded-xl
@@ -101,10 +128,25 @@ function SentenceResultsTable({ results, onSelectSentence }) {
                 focus:border-violet-500/50
               "
             >
-              <option value="All">All</option>
-              <option value="Excellent">Excellent</option>
-              <option value="Good">Good</option>
-              <option value="Needs Review">Needs Review</option>
+              <option value="All">
+                All
+              </option>
+
+              <option value="Excellent">
+                Excellent
+              </option>
+
+              <option value="Good">
+                Good
+              </option>
+
+              <option value="Needs Review">
+                Needs Review
+              </option>
+
+              <option value="Poor">
+                Poor
+              </option>
             </select>
 
           </div>
@@ -113,12 +155,11 @@ function SentenceResultsTable({ results, onSelectSentence }) {
 
       </div>
 
-
-      {/* Result Count */}
+      {/* Count */}
       <div className="mt-4 text-[10px] text-slate-600">
-        Showing {filteredResults.length} of {results.length} sentences
+        Showing {filteredResults.length} of{" "}
+        {results.length} sentences
       </div>
-
 
       {/* Table */}
       <div className="mt-3 overflow-x-auto">
@@ -126,7 +167,6 @@ function SentenceResultsTable({ results, onSelectSentence }) {
         <table className="w-full min-w-[850px] border-collapse">
 
           <thead>
-
             <tr className="border-b border-white/10">
 
               <th className="px-3 py-3 text-left text-[10px] font-medium uppercase tracking-wider text-slate-600">
@@ -156,9 +196,7 @@ function SentenceResultsTable({ results, onSelectSentence }) {
               <th className="px-3 py-3" />
 
             </tr>
-
           </thead>
-
 
           <tbody>
 
@@ -166,7 +204,9 @@ function SentenceResultsTable({ results, onSelectSentence }) {
 
               <tr
                 key={item.sentence_id}
-                onClick={() => onSelectSentence(item)}
+                onClick={() =>
+                  onSelectSentence(item)
+                }
                 className="
                   cursor-pointer
                   border-b border-white/5
@@ -177,53 +217,49 @@ function SentenceResultsTable({ results, onSelectSentence }) {
 
                 {/* ID */}
                 <td className="px-3 py-4">
-
                   <span className="text-xs font-semibold text-violet-400">
-                    #{String(item.sentence_id).padStart(3, "0")}
+                    #
+                    {String(
+                      item.sentence_id
+                    ).padStart(3, "0")}
                   </span>
-
                 </td>
-
 
                 {/* Source */}
                 <td className="max-w-[230px] px-3 py-4">
-
                   <p className="truncate text-xs text-slate-400">
                     {item.source}
                   </p>
-
                 </td>
-
 
                 {/* Translation */}
                 <td className="max-w-[230px] px-3 py-4">
-
                   <p className="truncate text-xs text-slate-300">
                     {item.translation}
                   </p>
-
                 </td>
-
 
                 {/* Score */}
                 <td className="px-3 py-4 text-center">
-
                   <span className="text-sm font-bold text-slate-200">
-                    {item.overall_score}
+                    {typeof item.overall_score ===
+                    "number"
+                      ? item.overall_score.toFixed(2)
+                      : "—"}
                   </span>
-
                 </td>
-
 
                 {/* Quality */}
                 <td className="px-3 py-4 text-center">
-
                   <QualityBadge
-                    label={item.quality_label}
+                    label={
+                      item.quality_label ||
+                      getQualityLabel(
+                        item.overall_score
+                      )
+                    }
                   />
-
                 </td>
-
 
                 {/* Errors */}
                 <td className="px-3 py-4 text-center">
@@ -240,7 +276,6 @@ function SentenceResultsTable({ results, onSelectSentence }) {
 
                 </td>
 
-
                 {/* Arrow */}
                 <td className="px-3 py-4 text-right">
 
@@ -255,8 +290,6 @@ function SentenceResultsTable({ results, onSelectSentence }) {
 
             ))}
 
-
-            {/* Empty State */}
             {filteredResults.length === 0 && (
 
               <tr>
@@ -301,6 +334,9 @@ function QualityBadge({ label }) {
 
     "Needs Review":
       "bg-orange-500/10 text-orange-400 border-orange-500/10",
+
+    Poor:
+      "bg-rose-500/10 text-rose-400 border-rose-500/10",
   };
 
   return (
@@ -309,7 +345,10 @@ function QualityBadge({ label }) {
         inline-flex rounded-full
         border px-2.5 py-1
         text-[9px] font-semibold
-        ${styles[label] || "bg-slate-500/10 text-slate-400"}
+        ${
+          styles[label] ||
+          "bg-slate-500/10 text-slate-400 border-slate-500/10"
+        }
       `}
     >
       {label}

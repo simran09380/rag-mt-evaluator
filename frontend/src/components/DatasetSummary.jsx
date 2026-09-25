@@ -5,194 +5,292 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
+function getQualityLabel(score) {
+  if (typeof score !== "number") return "Not Available";
+
+  if (score >= 90) return "Excellent";
+  if (score >= 75) return "Good";
+  if (score >= 60) return "Needs Review";
+  return "Poor";
+}
+
 function DatasetSummary({ dataset }) {
+  const records = Array.isArray(dataset?.data)
+    ? dataset.data
+    : [];
+
+  const totalSentences =
+    dataset?.metadata?.num_records ??
+    records.length;
+
+  const evaluatedSentences = records.filter(
+    (record) =>
+      typeof record?.final_evaluation?.final_score ===
+      "number"
+  ).length;
+
+  const scores = records
+    .map(
+      (record) =>
+        record?.final_evaluation?.final_score
+    )
+    .filter((score) => typeof score === "number");
+
+  const averageScore =
+    scores.length > 0
+      ? scores.reduce((sum, score) => sum + score, 0) /
+        scores.length
+      : 0;
+
+  const qualityDistribution = {
+    excellent: 0,
+    good: 0,
+    needs_review: 0,
+    poor: 0,
+  };
+
+  scores.forEach((score) => {
+    const quality = getQualityLabel(score);
+
+    if (quality === "Excellent") {
+      qualityDistribution.excellent++;
+    } else if (quality === "Good") {
+      qualityDistribution.good++;
+    } else if (quality === "Needs Review") {
+      qualityDistribution.needs_review++;
+    } else if (quality === "Poor") {
+      qualityDistribution.poor++;
+    }
+  });
+
+  const needsReview =
+    qualityDistribution.needs_review +
+    qualityDistribution.poor;
+
+  const distributionTotal =
+    scores.length || 1;
+
+  const cards = [
+    {
+      title: "Total Sentences",
+      value: totalSentences,
+      icon: FileText,
+      description: "Sentences in uploaded dataset",
+    },
+    {
+      title: "Evaluated Sentences",
+      value: evaluatedSentences,
+      icon: CheckCircle2,
+      description: "Successfully evaluated",
+    },
+    {
+      title: "Average Score",
+      value:
+        scores.length > 0
+          ? averageScore.toFixed(1)
+          : "—",
+      icon: BarChart3,
+      description: "Across evaluated sentences",
+    },
+    {
+      title: "Needs Review",
+      value: needsReview,
+      icon: AlertTriangle,
+      description: "Sentences requiring attention",
+    },
+  ];
+
   return (
-    <section className="mt-6">
+    <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
 
-      <div className="mb-5 flex items-center gap-3">
-        <div className="h-5 w-1 rounded-full bg-violet-500" />
+      {/* Header */}
+      <div className="mb-6">
+        <p className="text-xs font-medium uppercase tracking-wider text-violet-400">
+          Dataset Summary
+        </p>
 
-        <div>
-          <h2 className="text-lg font-semibold">
-            Dataset Evaluation
-          </h2>
+        <h2 className="mt-1 text-xl font-bold text-white">
+          Dataset evaluation overview
+        </h2>
 
-          <p className="mt-1 text-xs text-slate-500">
-            Summary of translation quality across the uploaded dataset.
-          </p>
-        </div>
+        <p className="mt-2 text-sm text-slate-500">
+          Summary calculated from the evaluated dataset returned by the backend.
+        </p>
       </div>
 
-
+      {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
-        <SummaryCard
-          icon={FileText}
-          label="Total Sentences"
-          value={dataset.total_sentences}
-          iconStyle="bg-blue-500/10 text-blue-400"
-        />
+        {cards.map((card) => {
+          const Icon = card.icon;
 
-        <SummaryCard
-          icon={CheckCircle2}
-          label="Evaluated"
-          value={dataset.evaluated_sentences}
-          iconStyle="bg-emerald-500/10 text-emerald-400"
-        />
+          return (
+            <div
+              key={card.title}
+              className="
+                rounded-xl
+                border border-white/10
+                bg-black/20
+                p-5
+              "
+            >
+              <div className="flex items-start justify-between">
 
-        <SummaryCard
-          icon={BarChart3}
-          label="Average Score"
-          value={dataset.average_score}
-          suffix="/ 100"
-          iconStyle="bg-violet-500/10 text-violet-400"
-        />
+                <div>
+                  <p className="text-xs text-slate-500">
+                    {card.title}
+                  </p>
 
-        <SummaryCard
-          icon={AlertTriangle}
-          label="Needs Review"
-          value={dataset.quality_distribution.needs_review}
-          iconStyle="bg-orange-500/10 text-orange-400"
-        />
+                  <p className="mt-2 text-2xl font-bold text-white">
+                    {card.value}
+                  </p>
+                </div>
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400">
+                  <Icon size={19} />
+                </div>
+
+              </div>
+
+              <p className="mt-3 text-[11px] text-slate-600">
+                {card.description}
+              </p>
+            </div>
+          );
+        })}
 
       </div>
 
+      {/* Quality Distribution */}
+      <div className="mt-6 rounded-xl border border-white/10 bg-black/20 p-5">
 
-      {/* Quality distribution */}
-      <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <div className="flex items-center justify-between">
 
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-semibold">
-            Quality Distribution
-          </h3>
+          <div>
+            <p className="text-sm font-semibold text-white">
+              Quality Distribution
+            </p>
 
-          <span className="text-[10px] text-slate-600">
-            {dataset.total_sentences} sentences
+            <p className="mt-1 text-xs text-slate-500">
+              Distribution of evaluated sentences by final score
+            </p>
+          </div>
+
+          <span className="text-xs text-slate-500">
+            {scores.length} evaluated
           </span>
-        </div>
-
-
-        <div className="flex h-3 overflow-hidden rounded-full bg-slate-800">
-
-          <div
-            className="bg-emerald-500"
-            style={{
-              width: `${
-                (dataset.quality_distribution.excellent /
-                  dataset.total_sentences) *
-                100
-              }%`,
-            }}
-          />
-
-          <div
-            className="bg-blue-500"
-            style={{
-              width: `${
-                (dataset.quality_distribution.good /
-                  dataset.total_sentences) *
-                100
-              }%`,
-            }}
-          />
-
-          <div
-            className="bg-orange-500"
-            style={{
-              width: `${
-                (dataset.quality_distribution.needs_review /
-                  dataset.total_sentences) *
-                100
-              }%`,
-            }}
-          />
 
         </div>
 
+        {/* Distribution Bar */}
+        {scores.length > 0 ? (
+          <div className="mt-5 flex h-3 overflow-hidden rounded-full bg-white/5">
 
-        <div className="mt-4 flex flex-wrap gap-5">
+            {qualityDistribution.excellent > 0 && (
+              <div
+                className="bg-emerald-500"
+                style={{
+                  width: `${
+                    (qualityDistribution.excellent /
+                      distributionTotal) *
+                    100
+                  }%`,
+                }}
+              />
+            )}
 
-          <Legend
-            label="Excellent"
-            value={dataset.quality_distribution.excellent}
-            color="bg-emerald-500"
-          />
+            {qualityDistribution.good > 0 && (
+              <div
+                className="bg-blue-500"
+                style={{
+                  width: `${
+                    (qualityDistribution.good /
+                      distributionTotal) *
+                    100
+                  }%`,
+                }}
+              />
+            )}
 
-          <Legend
-            label="Good"
-            value={dataset.quality_distribution.good}
-            color="bg-blue-500"
-          />
+            {qualityDistribution.needs_review > 0 && (
+              <div
+                className="bg-orange-500"
+                style={{
+                  width: `${
+                    (qualityDistribution.needs_review /
+                      distributionTotal) *
+                    100
+                  }%`,
+                }}
+              />
+            )}
 
-          <Legend
-            label="Needs Review"
-            value={dataset.quality_distribution.needs_review}
-            color="bg-orange-500"
-          />
+            {qualityDistribution.poor > 0 && (
+              <div
+                className="bg-rose-500"
+                style={{
+                  width: `${
+                    (qualityDistribution.poor /
+                      distributionTotal) *
+                    100
+                  }%`,
+                }}
+              />
+            )}
+
+          </div>
+        ) : (
+          <div className="mt-5 h-3 rounded-full bg-white/5" />
+        )}
+
+        {/* Legend */}
+        <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3">
+
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            <span className="text-xs text-slate-400">
+              Excellent
+            </span>
+            <span className="text-xs font-semibold text-white">
+              {qualityDistribution.excellent}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+            <span className="text-xs text-slate-400">
+              Good
+            </span>
+            <span className="text-xs font-semibold text-white">
+              {qualityDistribution.good}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-orange-500" />
+            <span className="text-xs text-slate-400">
+              Needs Review
+            </span>
+            <span className="text-xs font-semibold text-white">
+              {qualityDistribution.needs_review}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+            <span className="text-xs text-slate-400">
+              Poor
+            </span>
+            <span className="text-xs font-semibold text-white">
+              {qualityDistribution.poor}
+            </span>
+          </div>
 
         </div>
 
       </div>
 
     </section>
-  );
-}
-
-
-function SummaryCard({
-  icon: Icon,
-  label,
-  value,
-  suffix,
-  iconStyle,
-}) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-
-      <div className="flex items-center gap-3">
-
-        <div
-          className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconStyle}`}
-        >
-          <Icon size={19} />
-        </div>
-
-        <p className="text-xs text-slate-500">
-          {label}
-        </p>
-
-      </div>
-
-      <p className="mt-4 text-2xl font-bold">
-        {value}
-
-        {suffix && (
-          <span className="ml-1 text-xs font-normal text-slate-500">
-            {suffix}
-          </span>
-        )}
-      </p>
-
-    </div>
-  );
-}
-
-
-function Legend({ label, value, color }) {
-  return (
-    <div className="flex items-center gap-2">
-
-      <span className={`h-2.5 w-2.5 rounded-full ${color}`} />
-
-      <span className="text-[10px] text-slate-500">
-        {label}
-      </span>
-
-      <span className="text-[10px] font-semibold text-slate-300">
-        {value}
-      </span>
-
-    </div>
   );
 }
 

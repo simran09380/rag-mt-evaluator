@@ -28,42 +28,44 @@ def calculate_all_metrics(
     """
 
     # Reference-based metrics
-    reference_based = {
-        "bleu": calculate_bleu(
-            hypothesis,
-            reference
-        ),
+    reference_based = {}
+    if reference and reference.strip():
+        reference_based ={
+            "bleu": calculate_bleu(
+                hypothesis,
+                reference
+            ),
 
-        "chrf": calculate_chrf(
-            hypothesis,
-            reference
-        ),
+            "chrf": calculate_chrf(
+                hypothesis,
+                reference
+            ),
 
-        "chrf_plus_plus": calculate_chrf_plus_plus(
-            hypothesis,
-            reference
-        ),
+            "chrf_plus_plus": calculate_chrf_plus_plus(
+                hypothesis,
+                reference
+            ),
 
-        "meteor": calculate_meteor(
-            hypothesis,
-            reference
-        ),
+            "meteor": calculate_meteor(
+                hypothesis,
+                reference
+            ),
 
-        "ter": calculate_ter(
-            hypothesis,
-            reference
-        ),
+            "ter": calculate_ter(
+                hypothesis,
+                reference
+            ),
 
-        "bertscore": calculate_bertscore(
-            hypothesis,
-            reference
-        ),
+            "bertscore": calculate_bertscore(
+                hypothesis,
+                reference
+            ),
 
-        "comet": calculate_comet(
-            source,
-            hypothesis,
-            reference
-        ),
+            "comet": calculate_comet(
+                source,
+                hypothesis,
+                reference
+            ),
     }
 
     # Reference-free metrics

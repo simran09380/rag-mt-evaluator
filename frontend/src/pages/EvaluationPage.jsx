@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { mapEvaluationResponse } from "../utils/evaluationMapper";
+import {
+  mapEvaluationResponse,
+  mapDatasetResults,
+  mapDatasetRecordToEvaluation,
+} from "../utils/evaluationMapper";
+
 
 import Navbar from "../components/Navbar";
 import EvaluationInput from "../components/EvaluationInput";
@@ -18,10 +23,7 @@ import LLMEvaluation from "../components/LLMEvaluation";
 import DatasetSummary from "../components/DatasetSummary";
 import SentenceResultsTable from "../components/SentenceResultsTable";
 
-import { mockDataset } from "../data/mockDataset";
-
-
-import { evaluateTranslation } from "../api/evaluationApi";
+import { evaluateTranslation,evaluateDataset, } from "../api/evaluationApi";
 
 function EvaluationPage() {
   const [selectedDatasetSentence, setSelectedDatasetSentence] = useState(null);
@@ -36,7 +38,6 @@ function EvaluationPage() {
 
   setEvaluationMode(inputData.mode);
   setSelectedDatasetSentence(null);
-  setEvaluationResult(null);
   setShowResults(false);
   setIsEvaluating(true);
   setCurrentStep(1);
@@ -52,45 +53,58 @@ function EvaluationPage() {
         domain: inputData.domain,
       });
 
-      console.log("RESULT TYPE:", typeof result);
-      console.log("RESULT:", result);
-      console.log("RESULT JSON:", JSON.stringify(result, null, 2));
-
-      const mappedResult = mapEvaluationResponse(result);
-
-      console.log("MAPPED FRONTEND RESULT:", mappedResult);
+      const mappedResult =
+        mapEvaluationResponse(result);
 
       setEvaluationResult(mappedResult);
 
       setIsEvaluating(false);
+      setCurrentStep(10);
       setShowResults(true);
-
     } catch (error) {
-      console.error("Evaluation API Error:", error);
+      console.error(
+        "Evaluation API Error:",
+        error
+      );
 
       setIsEvaluating(false);
+      setShowResults(false);
     }
 
     return;
   }
 
-  // Dataset flow remains unchanged for now
-  let step = 1;
+  if (inputData.mode === "dataset") {
+    try {
+      const result = await evaluateDataset({
+        file: inputData.file,
+        sourceLang: "en",
+        targetLang: "hi",
+        domain: inputData.domain || "General",
+      });
 
-  const interval = setInterval(() => {
-    step += 1;
+      console.log(
+        "DATASET RESULT:",
+        result
+      );
 
-    setCurrentStep(step);
+      setEvaluationResult(result);
 
-    if (step === 10) {
-      clearInterval(interval);
+      setIsEvaluating(false);
+      setCurrentStep(10);
+      setShowResults(true);
+    } catch (error) {
+      console.error(
+        "Dataset Evaluation API Error:",
+        error
+      );
 
-      setTimeout(() => {
-        setIsEvaluating(false);
-        setShowResults(true);
-      }, 800);
+      setIsEvaluating(false);
+      setShowResults(false);
     }
-  }, 700);
+
+    return;
+  }
 };
 
   return (
@@ -150,6 +164,7 @@ function EvaluationPage() {
 
             <DimensionScores
               scores={evaluationResult.dimension_scores}
+              llmEvaluation={evaluationResult.llm_evaluation}
             />
 
           </div>
@@ -160,6 +175,7 @@ function EvaluationPage() {
 
             <TraditionalMetrics
               metrics={evaluationResult.traditional_metrics}
+              referenceFreeMetrics={evaluationResult.reference_free_metrics}
             />
 
             <RetrievedEvidence
@@ -176,6 +192,7 @@ function EvaluationPage() {
           {/* LLM Evaluation */}
           <LLMEvaluation
             evaluation={evaluationResult.llm_evaluation}
+            evidence={evaluationResult.retrieved_evidence}
           />
 
         </div>
@@ -183,119 +200,159 @@ function EvaluationPage() {
 
 
       {showResults && evaluationMode === "dataset" && (
-        <div className="animate-[fadeIn_0.5s_ease-out]">
+  <div className="animate-[fadeIn_0.5s_ease-out]">
 
-          <DatasetSummary
-            dataset={mockDataset}
-          />
+    {/* Dataset Summary */}
+    <DatasetSummary
+      dataset={evaluationResult}
+    />
 
-          <SentenceResultsTable
-            results={mockDataset.results}
-            onSelectSentence={(sentence) => {
-              setSelectedDatasetSentence(sentence);
-            }}
-          />
-
-          {selectedDatasetSentence && (
-        <div className="mt-8 animate-[fadeIn_0.5s_ease-out]">
-
-          {/* Selected Sentence Header */}
-          <div className="mb-6 flex items-center justify-between">
-
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-violet-400">
-                Detailed Evaluation
-              </p>
-
-              <h2 className="mt-1 text-2xl font-bold">
-                Sentence #{selectedDatasetSentence.sentence_id}
-              </h2>
-
-              <p className="mt-2 text-xs text-slate-500">
-                Complete evaluation results for the selected sentence.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setSelectedDatasetSentence(null)}
-              className="
-                rounded-xl
-                border border-white/10
-                bg-white/[0.03]
-                px-4 py-2
-                text-xs
-                text-slate-400
-                transition
-                hover:bg-white/[0.06]
-                hover:text-white
-              "
-            >
-              Close Details
-            </button>
-
-          </div>
-
-
-          {/* Detailed Evaluation */}
-          <div className="grid gap-6 xl:grid-cols-3">
-
-            <OverallEvaluation
-              evaluation={{
-                ...evaluationResult,
-                sentence_id: selectedDatasetSentence.sentence_id,
-                source_sentence: selectedDatasetSentence.source,
-                machine_translation: selectedDatasetSentence.translation,
-                overall_score: selectedDatasetSentence.overall_score,
-                quality_label: selectedDatasetSentence.quality_label,
-              }}
-            />
-
-            <TranslationComparison
-              evaluation={{
-                ...evaluationResult,
-                sentence_id: selectedDatasetSentence.sentence_id,
-                source_sentence: selectedDatasetSentence.source,
-                machine_translation: selectedDatasetSentence.translation,
-                overall_score: selectedDatasetSentence.overall_score,
-                quality_label: selectedDatasetSentence.quality_label,
-              }}
-            />
-
-            <DimensionScores
-              scores={evaluationResult.dimension_scores}
-            />
-
-          </div>
-
-
-          <div className="mt-6 grid gap-6 xl:grid-cols-3">
-
-            <TraditionalMetrics
-              metrics={evaluationResult.traditional_metrics}
-            />
-
-            <RetrievedEvidence
-              evidence={evaluationResult.retrieved_evidence}
-            />
-
-            <ErrorAnalysis
-              errorAnalysis={evaluationResult.error_analysis}
-            />
-
-          </div>
-
-
-          <LLMEvaluation
-            evaluation={evaluationResult.llm_evaluation}
-          />
-
-        </div>
+    {/* Sentence Results */}
+    <SentenceResultsTable
+      results={mapDatasetResults(
+        evaluationResult
       )}
+      onSelectSentence={(sentence) => {
+        setSelectedDatasetSentence(
+          sentence
+        );
+      }}
+    />
 
-        </div>
-      )}
+    {/* Selected Sentence */}
+    {selectedDatasetSentence && (
+      <DatasetSentenceDetails
+        sentence={selectedDatasetSentence}
+        datasetResult={evaluationResult}
+        onClose={() =>
+          setSelectedDatasetSentence(null)
+        }
+      />
+    )}
+
+  </div>
+)}
 
       </main>
+
+    </div>
+  );
+}
+
+function DatasetSentenceDetails({
+  sentence,
+  datasetResult,
+  onClose,
+}) {
+  const evaluation =
+    mapDatasetRecordToEvaluation(
+      sentence?.rawRecord,
+      datasetResult
+    );
+
+  if (!evaluation) {
+    return null;
+  }
+
+  return (
+    <div className="mt-8 animate-[fadeIn_0.5s_ease-out]">
+
+      {/* Header */}
+      <div className="mb-6 flex items-center justify-between">
+
+        <div>
+
+          <p className="text-xs font-medium uppercase tracking-wider text-violet-400">
+            Detailed Evaluation
+          </p>
+
+          <h2 className="mt-1 text-2xl font-bold text-white">
+            Sentence #{sentence.sentence_id}
+          </h2>
+
+          <p className="mt-2 text-xs text-slate-500">
+            Complete evaluation results for the selected sentence.
+          </p>
+
+        </div>
+
+        <button
+          onClick={onClose}
+          className="
+            rounded-xl
+            border border-white/10
+            bg-white/[0.03]
+            px-4 py-2
+            text-xs
+            text-slate-400
+            transition
+            hover:bg-white/[0.06]
+            hover:text-white
+          "
+        >
+          Close Details
+        </button>
+
+      </div>
+
+
+      {/* Row 1 */}
+      <div className="grid gap-6 xl:grid-cols-3">
+
+        <OverallEvaluation
+          evaluation={evaluation}
+        />
+
+        <TranslationComparison
+          evaluation={evaluation}
+        />
+
+        <DimensionScores
+          scores={evaluation.dimension_scores}
+          llmEvaluation={
+            evaluation.llm_evaluation
+          }
+        />
+
+      </div>
+
+
+      {/* Row 2 */}
+      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+
+        <TraditionalMetrics
+          metrics={
+            evaluation.traditional_metrics
+          }
+          referenceFreeMetrics={
+            evaluation.reference_free_metrics
+          }
+        />
+
+        <RetrievedEvidence
+          evidence={
+            evaluation.retrieved_evidence
+          }
+        />
+
+        <ErrorAnalysis
+          errorAnalysis={
+            evaluation.error_analysis
+          }
+        />
+
+      </div>
+
+
+      {/* LLM Evaluation */}
+      <LLMEvaluation
+        evaluation={
+          evaluation.llm_evaluation
+        }
+        evidence={
+          evaluation.retrieved_evidence
+        }
+      />
 
     </div>
   );
